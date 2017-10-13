@@ -13,6 +13,12 @@ import (
 	"gopkg.in/telegram-bot-api.v4"
 )
 
+const bannerMsg = `Welcome to *Beaches.ie* Bot
+I'm here for helping you :)
+Commands available:
+/list -> Beaches near you
+`
+
 func main() {
 
 	apikey := os.Getenv("tgapikey")
@@ -79,6 +85,9 @@ func main() {
 
 func generateResponseToCmd(cmd tgbotapi.Message) (msg tgbotapi.MessageConfig, err error) {
 	switch action := cmd.Command(); action {
+	case "start":
+		msg = tgbotapi.NewMessage(cmd.Chat.ID, bannerMsg)
+		msg.ParseMode = "MARKDOWN"
 	case "list":
 		msg = tgbotapi.NewMessage(cmd.Chat.ID, "Give me your location")
 		cardLocation := tgbotapi.NewReplyKeyboard(
