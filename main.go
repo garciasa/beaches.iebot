@@ -14,9 +14,19 @@ import (
 )
 
 const bannerMsg = `Welcome to *Beaches.ie* Bot
-I'm here for helping you :)
+I'm here to help you ☺️
+type /help to see commands
+`
+
+const helpMsg = `
 Commands available:
-/list -> Beaches near you
+/list ⟶ Beaches near you
+/restrictions ⟶ Restrictions near you
+/search text ⟶ Search beaches by name
+/county name ⟶ List beaches in a county
+/favourites id1,id2,... ⟶ Adding favourites beaches to your profile
+/jelly ⟶ take a photo, send it to us and our AI software is going to recognize it
+/report ⟶ take a photo and report an beach incident
 `
 
 func main() {
@@ -87,6 +97,9 @@ func generateResponseToCmd(cmd tgbotapi.Message) (msg tgbotapi.MessageConfig, er
 	switch action := cmd.Command(); action {
 	case "start":
 		msg = tgbotapi.NewMessage(cmd.Chat.ID, bannerMsg)
+		msg.ParseMode = "MARKDOWN"
+	case "help":
+		msg = tgbotapi.NewMessage(cmd.Chat.ID, helpMsg)
 		msg.ParseMode = "MARKDOWN"
 	case "list":
 		msg = tgbotapi.NewMessage(cmd.Chat.ID, "Give me your location")
