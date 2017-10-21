@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -19,15 +18,21 @@ type /help to see commands
 `
 
 const helpMsg = `
-Commands available:
-/list ⟶ Beaches near you
-/restrictions ⟶ Restrictions near you
-/search text ⟶ Search beaches by name
-/county name ⟶ List beaches in a county
-/favourites id1,id2,... ⟶ Adding favourites beaches to your profile
-/jelly ⟶ take a photo, send it to us and our AI software is going to recognize it
-/report ⟶ take a photo and report an beach incident
+*Commands*
+/list - Beaches near you
+/restrictions - Restrictions near you
+/search text - Search beaches by name
+/county name - List beaches in a county
+/favourites id1,id2,... - Adding favourites beaches to your profile
+/jelly - take a photo, send it to us and our AI software is going to recognize it
+/report - take a photo and report an beach incident
 `
+
+type beachesResponse struct {
+	Name   string
+	Code   string
+	County string `json:"CountyName"`
+}
 
 func main() {
 
@@ -75,15 +80,23 @@ func main() {
 			// TODO: go routine
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Thank you, we're checking...")
 			bot.Send(msg)
-			err := listBeachesNearMe(update.Message.Chat.ID, update.Message.Location.Latitude, update.Message.Location.Longitude)
+			beaches, err := listBeachesNearMe(update.Message.Chat.ID, update.Message.Location.Latitude, update.Message.Location.Longitude)
 			if err != nil {
 				log.Printf("[ERROR] - %s", err)
 			}
+
+			for _, b := range beaches {
+				txt := fmt.Sprintf("*Name:* %s\n*County:* %s\n*Code:* %s", b.Name, b.County, b.Code)
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, txt)
+				msg.ParseMode = "MARKDOWN"
+				bot.Send(msg)
+			}
+
 			continue
 
 		}
 
-		log.Printf("[%s] %s", update.Message.From.FirstName, update.Message.Text)
+		// log.Printf("[%s] %s", update.Message.From.FirstName, update.Message.Text)
 
 		// msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 		// msg.ReplyToMessageID = update.Message.MessageID
@@ -117,26 +130,20 @@ func generateResponseToCmd(cmd tgbotapi.Message) (msg tgbotapi.MessageConfig, er
 	return msg, nil
 }
 
-func listBeachesNearMe(chatID int64, latitude float64, longitude float64) (err error) {
+func listBeachesNearMe(chatID int64, latitude float64, longitude float64) (beaches []beachesResponse, err error) {
 	url := fmt.Sprintf("https://api.beaches.ie/api/beach/nearme/%f/%f/5", latitude, longitude)
 	log.Printf("[INFO] - %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	err = json.NewDecoder(resp.Body).Decode(&beaches)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	jsonresponse, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
+	log.Printf("[INFO] - Total %d", len(beaches))
 
-	log.Printf("[INFO] - %s", string(jsonresponse))
-
-	return nil
+	return beaches, nil
 
 }
